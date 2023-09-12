@@ -13,6 +13,7 @@
   "dependencies": {
     "electron": "^26.2.0",
     "fabric": "^5.3.0",
-    "phaser": "^3.60.0"
+    "phaser": "^3.60.0",
+    "phaser3spectorjs": "^0.0.8"
   }
 }
