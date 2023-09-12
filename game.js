@@ -28,7 +28,7 @@ class MinesweeperScene extends Scene {
     this.rows = 10;
     this.cols = 10;
     this.size = 40;
-    this.mineCount = 20;
+    this.mineCount = 10;
     this.grid = [];
     this.uiCanvas = null;
     this.minesLeft = this.mineCount;
@@ -101,6 +101,36 @@ class MinesweeperScene extends Scene {
         minesPlaced++;
       }
     }
+
+    for (let i = 0; i < this.rows; i++) {
+      for (let j = 0; j < this.cols; j++) {
+        const cell = this.grid[i][j];
+
+        if (!cell.hasMine) {
+          cell.number = this.calculateAdjacentMines(i, j);
+        }
+      }
+    }
+  }
+
+  // 計算格子周遭的地雷數量
+  calculateAdjacentMines(row, col) {
+    const directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],           [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+
+    let count = 0;
+    directions.forEach(([dx, dy]) => {
+      const x = row + dx;
+      const y = col + dy;
+      if (x >= 0 && x < this.rows && y >= 0 && y < this.cols && this.grid[x][y].hasMine) {
+        count++;
+      }
+    });
+
+    return count;
   }
 
   // 標記該格子為地雷
@@ -131,8 +161,36 @@ class MinesweeperScene extends Scene {
       this.gameOver('You Lost!', false); // 判斷為遊戲失敗
     } else {
       this.grid[row][col].rect.setFillStyle(0x00ff00); // 如果不是地雷就讓格子變成綠色
+
+      // 揭露該格子的地雷數字
+      if (this.grid[row][col].number > 0) { 
+        const x = col * this.size + this.size / 2;
+        const y = row * this.size + this.size / 2;
+        const text = this.add.text(x, y, this.grid[row][col].number.toString(), { fontSize: '16px', fill: '#000' });
+        text.setOrigin(0.5);
+      } else {
+        this.revealAdjacentCells(row, col);
+      }
+  
       this.checkWinCondition();
     }
+  }
+
+  // 接露地雷數量為0周遭的格子
+  revealAdjacentCells(row, col) {
+    const directions = [
+      [-1, -1], [-1, 0], [-1, 1],
+      [0, -1],           [0, 1],
+      [1, -1], [1, 0], [1, 1]
+    ];
+
+    directions.forEach(([dx, dy]) => {
+      const x = row + dx;
+      const y = col + dy;
+      if (x >= 0 && x < this.rows && y >= 0 && y < this.cols) {
+        this.revealCell(x, y);
+      }
+    });
   }
 
   // 檢查遊戲是否勝利
