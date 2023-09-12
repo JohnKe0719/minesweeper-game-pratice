@@ -3,12 +3,7 @@ const { Scene, Game } = require('phaser');
 class MinesweeperScene extends Scene {
   constructor() {
     super({ key: 'MinesweeperScene' });
-    // 格子相關變數都放置到建構函式裡
-    this.rows = 10;
-    this.cols = 10;
-    this.size = 40;
-    this.mineCount = 5;
-    this.grid = [];
+    this.init()
   }
 
   preload() {
@@ -17,6 +12,30 @@ class MinesweeperScene extends Scene {
   create() {
     this.createGrid();
     this.placeMines();
+    this.createUI();
+    this.timerText.text = 'Time: ' + this.timer + 's';
+
+    this.timerEvent = this.time.addEvent({
+      delay: 1000,
+      callback: this.updateTimer,
+      callbackScope: this,
+      loop: true
+    });
+  }
+
+  init() {
+    // 初始化變數
+    this.rows = 10;
+    this.cols = 10;
+    this.size = 40;
+    this.mineCount = 20;
+    this.grid = [];
+    this.uiCanvas = null;
+    this.minesLeft = this.mineCount;
+    this.mineCounterText = null;
+    this.timer = 0;
+    this.timerEvent = null;
+    this.timerText = null;
   }
 
   // 畫出踩地雷的格子，並初始化
@@ -29,11 +48,45 @@ class MinesweeperScene extends Scene {
         const rect = this.add.rectangle(x, y, this.size, this.size, 0x666666); // 繪製格子
         rect.setStrokeStyle(2, 0xffffff); // 設置格子的邊框
         rect.setInteractive(); // 讓格子可以被監聽事件
-        rect.on('pointerdown', () => this.revealCell(row, col)); // 添加點擊格子的監聽事件
-        this.grid[row][col] = { rect, hasMine: false, revealed: false }; // 初始化格子
+        rect.on('pointerdown', (pointer) => { // 添加點擊格子的監聽事件
+          if (pointer.rightButtonDown()) {
+            this.toggleMineMarker(row, col); // 標記該格子為地雷
+          } else {
+            this.revealCell(row, col);
+          }
+        }); 
+        this.grid[row][col] = { rect, hasMine: false, revealed: false, marked: false }; // 初始化格子
       }
     }
   }
+
+  // 畫出計時器/地雷計數器的UI
+  createUI() {
+    this.uiCanvas = new fabric.Canvas('uiCanvas', { renderOnAddRemove: false });
+    this.uiCanvas.setWidth(800);
+    this.uiCanvas.setHeight(100);
+    this.uiCanvas.lowerCanvasEl.style.position = 'relative';
+    
+
+
+    const background = new fabric.Rect({ left: 0, top: 0, width: 800, height: 100, fill: 'rgba(107, 158, 185)' }); // 給UI一個背景
+    this.timerText = new fabric.Text('Time: 0s', { left: 10, top: 10, fontSize: 20, fill: '#000000' });
+    this.mineCounterText = new fabric.Text(`Mines Left: ${this.minesLeft}`, { left: 600, top: 10, fontSize: 20, fill: '#000000' });
+
+    this.uiCanvas.add(background);
+    this.uiCanvas.add(this.timerText);
+    this.uiCanvas.add(this.mineCounterText);
+    this.uiCanvas.renderAll();
+    document.body.appendChild(this.uiCanvas.lowerCanvasEl);
+  }
+
+  // 更新計時器
+  updateTimer() {
+    this.timer += 1;
+    this.timerText.text = 'Time: ' + this.timer + 's';
+    this.timerText.canvas.renderAll();
+  }
+
 
   // 放置地雷
   placeMines() {
@@ -48,6 +101,23 @@ class MinesweeperScene extends Scene {
         minesPlaced++;
       }
     }
+  }
+
+  // 標記該格子為地雷
+  toggleMineMarker(row, col) {
+    if (this.grid[row][col].revealed) {
+      return;
+    }
+    this.grid[row][col].marked = !this.grid[row][col].marked;
+    if (this.grid[row][col].marked) {
+      this.grid[row][col].rect.setFillStyle(0xffff00);
+      this.minesLeft--;
+    } else {
+      this.grid[row][col].rect.setFillStyle(0x666666);
+      this.minesLeft++;
+    }
+    this.mineCounterText.text = 'Mines Left: ' + this.minesLeft;
+    this.mineCounterText.canvas.renderAll();
   }
 
   // 揭露該格子的內容
@@ -81,6 +151,7 @@ class MinesweeperScene extends Scene {
 
   // 遊戲結束時觸發
   gameOver(message, isWin) {
+    this.timerEvent.remove();
     this.disableInteraction();
 
     // 用fabric創建一個彈窗
@@ -108,6 +179,7 @@ class MinesweeperScene extends Scene {
       // 計算restartButton的位置，判斷是否點擊
       if (x > 350 && x < 450 && y > 300 && y < 350) {
         document.body.removeChild(popupCanvas.lowerCanvasEl);
+        document.body.removeChild(this.uiCanvas.lowerCanvasEl);
         this.scene.start('MinesweeperScene');
       }
     });
@@ -127,7 +199,7 @@ class MinesweeperScene extends Scene {
 const config = {
   type: Phaser.AUTO,
   width: 800,
-  height: 600,
+  height: 450,
   scene: MinesweeperScene,
   backgroundColor: '#444444',
 };
