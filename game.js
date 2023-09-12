@@ -1,6 +1,6 @@
-const { Scene, Game } = require('phaser');
+// import Phaser from 'https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js';
 
-class MinesweeperScene extends Scene {
+class MinesweeperScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MinesweeperScene' });
     this.init()
@@ -262,4 +262,4 @@ const config = {
   backgroundColor: '#444444',
 };
 
-const game = new Game(config);
+const game = new Phaser.Game(config);
